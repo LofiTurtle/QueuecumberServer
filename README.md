@@ -4,4 +4,4 @@
 2. Install dependencies: `pipenv install`
 3. Install the application so it can be run: `pip install -e .`
 4. Activate pipenv shell: `pipenv shell`
-5. Run the server: `flask --app server run`
+5. Run the server: `flask run`

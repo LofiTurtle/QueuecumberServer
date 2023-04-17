@@ -19,9 +19,6 @@ from server import app
 
 # TODO refactor all of this to use JWTs
 
-# TODO the "session" is just a cookie. Use this to store all session state info (except JWTs) and have the app send
-#  it in requests
-
 jwt = JWTManager(app)
 
 
@@ -108,6 +105,7 @@ def get_token_header():
     if 'tokens' not in session:
         app.logger.error('No tokens in session')
         abort(400)
+    print(len(session['tokens'].get('access_token')), len(session['tokens'].get('refresh_token')))
     return {'Authorization': f"Bearer {session['tokens'].get('access_token')}"}
 
 
