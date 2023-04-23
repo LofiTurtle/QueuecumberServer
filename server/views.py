@@ -4,7 +4,7 @@ from flask import (
     redirect,
     request,
     session,
-    url_for,
+    url_for, jsonify,
 )
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, JWTManager
 import json
@@ -13,7 +13,8 @@ import secrets
 import string
 from urllib.parse import urlencode
 
-from . import endpoints
+from . import endpoints, db
+from .models import SpotifyToken
 
 from server import app
 
@@ -33,9 +34,6 @@ def login():
     Handle logging in and authenticating with Spotify
     """
 
-    # generate random 16-character state string to identify this login request
-    state = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-
     # API scopes that our application will need
     scope = ' playlist-modify-private playlist-modify-public ' \
             'user-read-recently-played'
@@ -44,13 +42,12 @@ def login():
         'client_id': app.config.get('CLIENT_ID'),
         'response_type': 'code',
         'redirect_uri': app.config.get('REDIRECT_URI'),
-        'state': state,
         'scope': scope
     }
 
-    # android app will create a WebView for the user to log in, which will handle the redirect
+    # android app will create a Chrome Custom Tab for the user to log in, which will handle the redirect
+    # make_response() could be replaced with returning the redirect directly
     res = make_response(redirect(f'{endpoints.AUTH_URL}/?{urlencode(url_parameters)}'))
-    res.set_cookie('spotify_auth_state', state)
 
     return res
 
@@ -61,16 +58,8 @@ def logout():
     abort(404)
 
 
-@app.route('/callback/')
+@app.route('/callback/', methods=['POST'])
 def callback():
-    spotify_state = request.args.get('state')
-    login_state = request.cookies.get('spotify_auth_state')
-
-    # check that state set during /login/ request matches spotify's auth server's state
-    if spotify_state is None or spotify_state != login_state:
-        app.logger.error('Error message: %s', repr(request.args.get('error')))
-        app.logger.error('State mismatch: %s != %s', login_state, spotify_state)
-        abort(400)
 
     # headers to get an access token with the authorization code
     auth_headers = {
@@ -91,14 +80,37 @@ def callback():
         )
         abort(res.status_code)
 
-    session['tokens'] = {
-        'access_token': res_data.get('access_token'),
-        'refresh_token': res_data.get('refresh_token')
-    }
+    spotify_access_token = res_data.get('access_token')
+    spotify_refresh_token = res_data.get('refresh_token')
+    headers = {'Authorization': f'Bearer {spotify_access_token}'}
+    me_res = requests.get(endpoints.ME_URL, headers=headers)
+    me_res_data = me_res.json()
+    spotify_user_id = me_res_data.get('id')
 
-    # TODO create JWT and save it to `session`
+    existing_st = SpotifyToken.query.filter_by(spotify_id=spotify_user_id).first()
+    if existing_st:
+        existing_st.access_token = spotify_access_token
+        existing_st.refresh_token = spotify_refresh_token
+    else:
+        st = SpotifyToken(
+            spotify_id=spotify_user_id,
+            access_token=spotify_access_token,
+            refresh_token=spotify_refresh_token
+        )
+        db.session.add(st)
+    db.session.commit()
 
-    return redirect(url_for('show_history'))
+    client_access_token = create_access_token(identity=spotify_user_id)
+    client_refresh_token = create_refresh_token(identity=spotify_user_id)
+
+    return jsonify(clientAccessToken=client_access_token, clientRefreshToken=client_refresh_token)
+
+
+@app.route('/refresh/', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    # TODO do this
+    pass
 
 
 def get_token_header():
@@ -132,10 +144,11 @@ def show_history():
 
 
 @app.route('/user/')
+@jwt_required()
 def user():
-    if 'tokens' not in session:
-        return redirect(url_for('login'))
-    headers = get_token_header()
+    spotify_user_id = get_jwt_identity()
+    st = SpotifyToken.query.filter_by(spotify_id=spotify_user_id).first()
+    headers = {'Authorization': f'Bearer {st.access_token}'}
     res = requests.get(endpoints.ME_URL, headers=headers)
     res_data = res.json()
 
