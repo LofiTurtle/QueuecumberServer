@@ -113,6 +113,35 @@ def refresh():
     pass
 
 
+@app.route('/sessions/')
+@jwt_required()
+def sessions():
+    # TODO do this
+    return jsonify(sessions=["this is a session"])
+
+
+@app.route('/session/<session_id>/', methods=['POST'])
+@jwt_required()
+def session(session_id):
+    # TODO do this
+    print(f'would have updated/modified session id {session_id}')
+    return jsonify(message='success')
+
+
+@app.route('/activities/')
+@jwt_required()
+def activities():
+    # TODO do this
+    return jsonify(activities=["this is an activity"])
+
+
+@app.route('/activity_playlists/')
+@jwt_required()
+def activity_playlists():
+    # TODO do this
+    return jsonify(playlists=["this is an activity playlist"])
+
+
 def get_token_header():
     if 'tokens' not in session:
         app.logger.error('No tokens in session')
