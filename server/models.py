@@ -1,5 +1,3 @@
-import datetime
-
 from server import db
 
 class SpotifyToken(db.Model):

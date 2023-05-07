@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from server import db
-from server.models import SongHistoryRecord, SpotifyToken, Activity, ListeningSession
+from server.models import SpotifyToken
 
 
 def get_user_recently_played(spotify_user_id: str, after: datetime) -> list[dict]:
