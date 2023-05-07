@@ -132,7 +132,7 @@ def session(session_id):
 @jwt_required()
 def activities():
     # TODO do this
-    return jsonify(activities=["this is an activity"])
+    return jsonify(activities=["this is an activity", "Here's another", "wow a third one"])
 
 
 @app.route('/activity_playlists/')
@@ -176,8 +176,7 @@ def show_history():
 @jwt_required()
 def user():
     spotify_user_id = get_jwt_identity()
-    st = SpotifyToken.query.filter_by(spotify_id=spotify_user_id).first()
-    headers = {'Authorization': f'Bearer {st.access_token}'}
+    headers = get_token_header()
     res = requests.get(endpoints.ME_URL, headers=headers)
     res_data = res.json()
 
