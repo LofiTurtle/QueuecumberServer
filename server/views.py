@@ -87,13 +87,13 @@ def callback():
     me_res_data = me_res.json()
     spotify_user_id = me_res_data.get('id')
 
-    existing_st = SpotifyToken.query.filter_by(spotify_id=spotify_user_id).first()
+    existing_st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
     if existing_st:
         existing_st.access_token = spotify_access_token
         existing_st.refresh_token = spotify_refresh_token
     else:
         st = SpotifyToken(
-            spotify_id=spotify_user_id,
+            spotify_user_id=spotify_user_id,
             access_token=spotify_access_token,
             refresh_token=spotify_refresh_token
         )

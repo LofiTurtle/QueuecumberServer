@@ -50,8 +50,7 @@ def set_listening_session_activity(listening_session: ListeningSession, activity
 
 
 def get_unlabeled_listening_sessions(spotify_user_id: str) -> list[ListeningSession]:
-    # TODO do this
-    pass
+    return ListeningSession.query.filter(ListeningSession.activity_id == None).all()
 
 
 def get_songs_for_listening_session(ls: ListeningSession) -> list[SongHistoryRecord]:
