@@ -4,7 +4,7 @@ from datetime import datetime
 from server import app, db
 from server.database.datamanager import save_listening_session, set_listening_session_activity, \
     save_to_listening_history, save_activity, get_songs_for_listening_session, \
-    get_activity_from_name
+    get_activity_from_name, get_unlabeled_listening_sessions
 
 response = input('Are you sure you want to delete and test adding stuff to the database? y/n ')
 if response != 'y':
@@ -49,6 +49,7 @@ with app.app_context():
     print(get_songs_for_listening_session(s1))
     print(get_songs_for_listening_session(s2))
     print(get_activity_from_name("myId", "Working Out"))
+    print(get_unlabeled_listening_sessions("myId"))
 
 
 
