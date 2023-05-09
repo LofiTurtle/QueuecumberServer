@@ -4,11 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-python-dotenv = "*"
-requests = "*"
-flask-jwt-extended = "*"
-flask-sqlalchemy = "*"
+Flask="*"
+Flask-JWT-Extended="*"
+Flask-SQLAlchemy="*"
+PyJWT="*"
+python-dotenv="*"
+requests="*"
+urllib3="*"
+Werkzeug="*"
+schedule = "*"
+apscheduler = "*"
 
 [dev-packages]
 

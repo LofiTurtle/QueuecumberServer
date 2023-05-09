@@ -1,5 +1,6 @@
 from server import db
 
+
 class SpotifyToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, unique=True, nullable=False)
@@ -28,9 +29,9 @@ class ListeningSession(db.Model):
 class SongHistoryRecord(db.Model):
     # each row is a single song in the user's listening history
     id = db.Column(db.Integer, primary_key=True)
-    spotify_user_id = db.Column(db.String, unique=True, nullable=False)
+    spotify_user_id = db.Column(db.String, nullable=False)
     song_id = db.Column(db.String, nullable=False)
     song_name = db.Column(db.String, nullable=False)
     artist_name = db.Column(db.String, nullable=False)
     art_link = db.Column(db.String)
-    played_at = db.Column(db.DateTime)
+    played_at = db.Column(db.DateTime, unique=True)

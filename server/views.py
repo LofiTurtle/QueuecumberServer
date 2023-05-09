@@ -1,3 +1,8 @@
+import threading
+import time
+
+import schedule
+from apscheduler.schedulers import SchedulerAlreadyRunningError
 from flask import (
     abort,
     make_response,
@@ -14,18 +19,15 @@ import string
 from urllib.parse import urlencode
 
 from . import endpoints, db
+from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict
+from .database.historytracker import save_user_recently_played
 from .models import SpotifyToken
 
 from server import app
-
-# TODO refactor all of this to use JWTs
+from .utils.backgroundtasks import start_scheduler
+from .utils.spotifyapiutil import make_authorized_get_request
 
 jwt = JWTManager(app)
-
-
-@app.route('/')
-def index():  # put application's code here
-    return redirect(url_for('show_history'))
 
 
 @app.route('/login/')
@@ -35,7 +37,7 @@ def login():
     """
 
     # API scopes that our application will need
-    scope = ' playlist-modify-private playlist-modify-public ' \
+    scope = 'playlist-modify-private playlist-modify-public ' \
             'user-read-recently-played'
 
     url_parameters = {
@@ -60,7 +62,6 @@ def logout():
 
 @app.route('/callback/', methods=['POST'])
 def callback():
-
     # headers to get an access token with the authorization code
     auth_headers = {
         'grant_type': 'authorization_code',
@@ -87,13 +88,13 @@ def callback():
     me_res_data = me_res.json()
     spotify_user_id = me_res_data.get('id')
 
-    existing_st = SpotifyToken.query.filter_by(spotify_id=spotify_user_id).first()
+    existing_st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
     if existing_st:
         existing_st.access_token = spotify_access_token
         existing_st.refresh_token = spotify_refresh_token
     else:
         st = SpotifyToken(
-            spotify_id=spotify_user_id,
+            spotify_user_id=spotify_user_id,
             access_token=spotify_access_token,
             refresh_token=spotify_refresh_token
         )
@@ -142,42 +143,55 @@ def activity_playlists():
     return jsonify(playlists=["this is an activity playlist"])
 
 
-def get_token_header():
-    if 'tokens' not in session:
-        app.logger.error('No tokens in session')
-        abort(400)
-    print(len(session['tokens'].get('access_token')), len(session['tokens'].get('refresh_token')))
-    return {'Authorization': f"Bearer {session['tokens'].get('access_token')}"}
+@app.route('/homepage_info/')
+@jwt_required()
+def homepage_info():
+    spotify_user_id = get_jwt_identity()
+
+    user_activities = get_user_activities(spotify_user_id, limit=3)
+    user_activities_dicts = [{
+        'name': activity.activity_name
+    } for activity in user_activities]
+
+    # TODO do this for real when playlists are working
+    user_playlists_dicts = ['playlist 1', 'playlist B', 'playlist III']
+
+    user_listening_history = get_user_listening_history(spotify_user_id, limit=3)
+    user_listening_history_dicts = [listening_history_to_dict(lh) for lh in user_listening_history]
+
+    # info is first 3 activities, 3 playlists (TBD), and last 3 songs listened to
+    info = {
+        'activities': user_activities_dicts,
+        'playlists': user_playlists_dicts,
+        'history': user_listening_history_dicts
+    }
+
+    return info
 
 
 @app.route('/history/')
-def show_history():
-    if 'tokens' not in session:
-        # user is not logged in, redirect them to login page
-        return redirect(url_for('login'))
-    headers = get_token_header()
-    parameters = {'limit': 50}
-
-    res = requests.get(f'{endpoints.HISTORY_URL}/?{urlencode(parameters)}', headers=headers)
-    res_data = res.json()
-
-    if res.status_code != 200:
-        app.logger.error(
-            'Failed to get listening history info: %s',
-            res_data.get('error', 'No error message returned.'),
-        )
-        abort(res.status_code)
-
-    return [f'{track_info["track"]["name"]} - {track_info["track"]["artists"][0]["name"]} - {track_info["played_at"]}'
-            for track_info in res_data['items']]
+@jwt_required()
+def history():
+    spotify_user_id = get_jwt_identity()
+    listening_history = get_user_listening_history(spotify_user_id)
+    lh_list = []
+    for lh in listening_history:
+        lh_list.append(listening_history_to_dict(lh))
 
 
 @app.route('/user/')
 @jwt_required()
 def user():
-    spotify_user_id = get_jwt_identity()
-    headers = get_token_header()
-    res = requests.get(endpoints.ME_URL, headers=headers)
-    res_data = res.json()
+    # starts the scheduler. It's weird to put it here, but flask is weird so getting it to run on its own won't work
+    try:
+        start_scheduler()
+    except SchedulerAlreadyRunningError:
+        pass
 
-    return res_data
+    spotify_user_id = get_jwt_identity()
+    # st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
+    # headers = {'Authorization': f'Bearer {st.access_token}'}
+    # res = requests.get(endpoints.ME_URL, headers=headers)
+    # res_data = res.json()
+
+    return make_authorized_get_request(spotify_user_id, endpoints.ME_URL)
