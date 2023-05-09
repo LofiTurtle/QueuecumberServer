@@ -176,7 +176,8 @@ def show_history():
 @jwt_required()
 def user():
     spotify_user_id = get_jwt_identity()
-    headers = get_token_header()
+    st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
+    headers = {'Authorization': f'Bearer {st.access_token}'}
     res = requests.get(endpoints.ME_URL, headers=headers)
     res_data = res.json()
 
