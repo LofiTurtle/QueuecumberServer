@@ -1,12 +1,8 @@
 from datetime import datetime
 
 from server import db
-from server.models import SongHistoryRecord, SpotifyToken, Activity, ListeningSession
-
-
-def get_token_header(spotify_user_id: str) -> dict[str, str]:
-    st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
-    return {'Authorization': f'Bearer {st.access_token}'}
+from server.database.historytracker import save_user_recently_played
+from server.models import SongHistoryRecord, Activity, ListeningSession
 
 
 def save_to_listening_history(spotify_user_id: str, song_id: str, song_name: str, artist_name: str, art_link: str,
@@ -23,8 +19,35 @@ def save_to_listening_history(spotify_user_id: str, song_id: str, song_name: str
     db.session.commit()
 
 
-def get_user_listening_history(spotify_user_id: str) -> list[SongHistoryRecord]:
-    return SongHistoryRecord.query.filter(SongHistoryRecord.spotify_user_id == spotify_user_id).all()
+def get_user_listening_history(spotify_user_id: str, limit: int = None, update: bool = True) -> list[SongHistoryRecord]:
+    """
+    Get the saved listening history for a user
+    @param spotify_user_id: The user to get history for
+    @param limit: The max number of entries to return (newest first)
+    @param update: If true, fetches the most recent data from Spotify before returning
+    @return: The list of SongHistoryRecord objects
+    """
+    if update:
+        save_user_recently_played(spotify_user_id)
+
+    if limit:
+        result = SongHistoryRecord.query.filter(SongHistoryRecord.spotify_user_id == spotify_user_id) \
+            .order_by(SongHistoryRecord.played_at.desc()).limit(limit).all()
+    else:
+        result = SongHistoryRecord.query.filter(SongHistoryRecord.spotify_user_id == spotify_user_id)\
+            .order_by(SongHistoryRecord.played_at.desc()).all()
+    return result
+
+
+def listening_history_to_dict(listening_history_record: SongHistoryRecord) -> dict:
+    return {
+        'spotify_user_id': listening_history_record.spotify_user_id,
+        'song_id': listening_history_record.song_id,
+        'song_name': listening_history_record.song_name,
+        'artist_name': listening_history_record.artist_name,
+        'art_link': listening_history_record.art_link,
+        'played_at': listening_history_record.played_at
+        }
 
 
 def save_listening_session(
@@ -68,8 +91,12 @@ def save_activity(spotify_user_id: str, activity_name: str) -> Activity:
     return a
 
 
-def get_user_activities(spotify_user_id: str) -> list[Activity]:
-    return Activity.query.filter(Activity.spotify_user_id == spotify_user_id).all()
+def get_user_activities(spotify_user_id: str, limit: int = None) -> list[Activity]:
+    if limit:
+        result = Activity.query.filter(Activity.spotify_user_id == spotify_user_id).limit(limit).all()
+    else:
+        result = Activity.query.filter(Activity.spotify_user_id == spotify_user_id).all()
+    return result
 
 
 def get_activity_from_name(spotify_user_id: str, activity_name: str) -> Activity:
