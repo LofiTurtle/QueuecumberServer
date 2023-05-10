@@ -1,29 +1,20 @@
-import threading
-import time
+from urllib.parse import urlencode
 
-import schedule
+import requests
 from apscheduler.schedulers import SchedulerAlreadyRunningError
 from flask import (
     abort,
     make_response,
     redirect,
     request,
-    session,
-    url_for, jsonify,
+    jsonify,
 )
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, JWTManager
-import json
-import requests
-import secrets
-import string
-from urllib.parse import urlencode
-
-from . import endpoints, db
-from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict
-from .database.historytracker import save_user_recently_played
-from .models import SpotifyToken
 
 from server import app
+from . import endpoints, db
+from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict
+from .models import SpotifyToken
 from .utils.backgroundtasks import start_scheduler
 from .utils.spotifyapiutil import make_authorized_get_request
 
@@ -172,11 +163,14 @@ def homepage_info():
 @app.route('/history/')
 @jwt_required()
 def history():
+    # TODO add limit and index params
     spotify_user_id = get_jwt_identity()
-    listening_history = get_user_listening_history(spotify_user_id)
+    # TODO remove update=False
+    listening_history = get_user_listening_history(spotify_user_id, update=False)
     lh_list = []
     for lh in listening_history:
         lh_list.append(listening_history_to_dict(lh))
+    return {'history_items': lh_list}
 
 
 @app.route('/user/')
