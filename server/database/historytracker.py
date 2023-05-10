@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from server import endpoints, db, app
+from server.database.listeningsession import create_listening_sessions
 from server.models import SpotifyToken, SongHistoryRecord
 from server.utils.spotifyapiutil import make_authorized_get_request
 
@@ -45,8 +46,14 @@ def save_user_recently_played(spotify_user_id: str) -> None:
     db.session.commit()
 
 
+def update_user_history(spotify_user_id: str):
+    save_user_recently_played(spotify_user_id)
+    # TODO test this
+    # create_listening_sessions(spotify_user_id)
+
+
 def save_all_user_recently_played() -> None:
     with app.app_context():
         app.logger.info('Fetching listening history')
         for suid in [token.spotify_user_id for token in SpotifyToken.query.all()]:
-            save_user_recently_played(suid)
+            update_user_history(suid)

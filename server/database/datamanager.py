@@ -77,6 +77,16 @@ def set_listening_session_activity(listening_session: ListeningSession, activity
     db.session.commit()
 
 
+def get_latest_listening_session(spotify_user_id: str) -> ListeningSession:
+    """
+    Get the most recent listening session
+    @param spotify_user_id: The spotify user to get the listening session for
+    @return: The ListeningSession object
+    """
+    return ListeningSession.query.filter_by(spotify_user_id=spotify_user_id)\
+        .order_by(ListeningSession.end_time.desc()).first()
+
+
 def get_unlabeled_listening_sessions(spotify_user_id: str) -> list[ListeningSession]:
     return ListeningSession.query.filter(ListeningSession.activity_id == None).all()
 
