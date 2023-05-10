@@ -1,9 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from server import endpoints, db, app
 from server.models import SpotifyToken, SongHistoryRecord
 from server.utils.spotifyapiutil import make_authorized_get_request
+
+
+# TODO make a dict to keep track of when history was last updated for users, and don't update again if it's too soon
 
 
 def get_user_recently_played(spotify_user_id: str) -> list[dict]:
@@ -17,7 +20,7 @@ def get_user_recently_played(spotify_user_id: str) -> list[dict]:
     url_params = {'limit': 50}
 
     if latest_history_record:
-        latest_history_entry_time = latest_history_record.played_at
+        latest_history_entry_time: datetime = latest_history_record.played_at.replace(tzinfo=timezone.utc)
         url_params['after'] = int(latest_history_entry_time.timestamp() * 1e3)
 
     url = url + f'/?{urlencode(url_params)}'
@@ -28,6 +31,7 @@ def get_user_recently_played(spotify_user_id: str) -> list[dict]:
 
 
 def save_user_recently_played(spotify_user_id: str) -> None:
+    app.logger.info('Fetching listening history for ' + spotify_user_id)
     song_history = get_user_recently_played(spotify_user_id)
     for song in song_history:
         db.session.add(SongHistoryRecord(

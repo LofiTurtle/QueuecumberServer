@@ -40,6 +40,11 @@ def get_user_listening_history(spotify_user_id: str, limit: int = None, update: 
 
 
 def listening_history_to_dict(listening_history_record: SongHistoryRecord) -> dict:
+    """
+    Converts a SongHistoryRecord object to a dictionary
+    @param listening_history_record: The SongHistoryRecord database object
+    @return: A dictionary containing a key for each attribute
+    """
     return {
         'spotify_user_id': listening_history_record.spotify_user_id,
         'song_id': listening_history_record.song_id,
