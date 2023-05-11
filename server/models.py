@@ -15,6 +15,7 @@ class Activity(db.Model):
     spotify_user_id = db.Column(db.String, unique=True, nullable=False)
     activity_name = db.Column(db.String, nullable=False)
     listening_sessions = db.relationship('ListeningSession', lazy=True)
+    activity_playlist = db.relationship('ListeningSession', lazy=True)
 
 
 class ListeningSession(db.Model):
@@ -35,3 +36,11 @@ class SongHistoryRecord(db.Model):
     artist_name = db.Column(db.String, nullable=False)
     art_link = db.Column(db.String)
     played_at = db.Column(db.DateTime, unique=True)
+
+
+class ActivityPlaylist(db.Model):
+    # each row represents a playlist in the user's spotify account
+    id = db.Column(db.Integer, primary_key=True)
+    spotify_user_id = db.Column(db.String, nullable=False)
+    spotify_playlist_id = db.Column(db.String, nullable=False)
+    activity_id = db.Column(db.Integer, db.ForeignKey('activity.id'), nullable=False, unique=True)

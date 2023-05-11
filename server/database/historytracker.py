@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from server import endpoints, db, app
-from server.database.listeningsession import create_listening_sessions
 from server.models import SpotifyToken, SongHistoryRecord
 from server.utils.spotifyapiutil import make_authorized_get_request
 
