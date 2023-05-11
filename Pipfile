@@ -12,7 +12,7 @@ python-dotenv="*"
 requests="*"
 urllib3="*"
 Werkzeug="*"
-apscheduler = "*"
+apscheduler = "~=3.9.1"
 
 [dev-packages]
 
