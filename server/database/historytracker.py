@@ -34,13 +34,17 @@ def save_user_recently_played(spotify_user_id: str) -> None:
     app.logger.info('Fetching listening history for ' + spotify_user_id)
     song_history = get_user_recently_played(spotify_user_id)
     for song in song_history:
+        try:
+            played_at_date = datetime.strptime(song['played_at'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            played_at_date = datetime.strptime(song['played_at'], '%Y-%m-%dT%H:%M:%SZ')
         db.session.add(SongHistoryRecord(
             spotify_user_id=spotify_user_id,
             song_id=song['track']['id'],
             song_name=song['track']['name'],
             artist_name=song['track']['artists'][0]['name'],
             art_link=song['track']['album']['images'][0]['url'],
-            played_at=datetime.strptime(song['played_at'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            played_at=played_at_date
         ))
     db.session.commit()
 
