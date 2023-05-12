@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 from server import endpoints, db, app
 from server.models import SpotifyToken, SongHistoryRecord
+from server.utils.listeningsession import create_listening_sessions
 from server.utils.spotifyapiutil import make_authorized_get_request
 
 
@@ -52,7 +53,7 @@ def save_user_recently_played(spotify_user_id: str) -> None:
 def update_user_history(spotify_user_id: str):
     save_user_recently_played(spotify_user_id)
     # TODO test this
-    # create_listening_sessions(spotify_user_id)
+    create_listening_sessions(spotify_user_id)
 
 
 def save_all_user_recently_played() -> None:
