@@ -14,6 +14,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from server import app
 from . import endpoints, db
 from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict
+from .database.historytracker import update_user_history
 from .models import SpotifyToken
 from .utils.backgroundtasks import start_scheduler
 from .utils.spotifyapiutil import make_authorized_get_request
@@ -147,6 +148,7 @@ def homepage_info():
     # TODO do this for real when playlists are working
     user_playlists_dicts = ['playlist 1', 'playlist B', 'playlist III']
 
+    update_user_history(spotify_user_id)
     user_listening_history = get_user_listening_history(spotify_user_id, limit=3)
     user_listening_history_dicts = [listening_history_to_dict(lh) for lh in user_listening_history]
 
@@ -165,8 +167,8 @@ def homepage_info():
 def history():
     # TODO add limit and index params
     spotify_user_id = get_jwt_identity()
-    # TODO remove update=False
-    listening_history = get_user_listening_history(spotify_user_id, update=False)
+    update_user_history(spotify_user_id)
+    listening_history = get_user_listening_history(spotify_user_id)
     lh_list = []
     for lh in listening_history:
         lh_list.append(listening_history_to_dict(lh))
