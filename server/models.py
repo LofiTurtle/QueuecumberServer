@@ -15,7 +15,7 @@ class Activity(db.Model):
     spotify_user_id = db.Column(db.String, unique=True, nullable=False)
     activity_name = db.Column(db.String, nullable=False)
     listening_sessions = db.relationship('ListeningSession', lazy=True)
-    activity_playlist = db.relationship('ListeningSession', lazy=True)
+    activity_playlist = db.relationship('ActivityPlaylist', lazy=True)
 
 
 class ListeningSession(db.Model):
@@ -43,4 +43,5 @@ class ActivityPlaylist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
     spotify_playlist_id = db.Column(db.String, nullable=False)
+    playlist_name = db.Column(db.String)
     activity_id = db.Column(db.Integer, db.ForeignKey('activity.id'), nullable=False, unique=True)

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from server import db
 from server.database.historytracker import save_user_recently_played
-from server.models import SongHistoryRecord, Activity, ListeningSession
+from server.models import SongHistoryRecord, Activity, ListeningSession, ActivityPlaylist
 
 
 def save_to_listening_history(spotify_user_id: str, song_id: str, song_name: str, artist_name: str, art_link: str,
@@ -34,7 +34,7 @@ def get_user_listening_history(spotify_user_id: str, limit: int = None, update: 
         result = SongHistoryRecord.query.filter(SongHistoryRecord.spotify_user_id == spotify_user_id) \
             .order_by(SongHistoryRecord.played_at.desc()).limit(limit).all()
     else:
-        result = SongHistoryRecord.query.filter(SongHistoryRecord.spotify_user_id == spotify_user_id)\
+        result = SongHistoryRecord.query.filter(SongHistoryRecord.spotify_user_id == spotify_user_id) \
             .order_by(SongHistoryRecord.played_at.desc()).all()
     return result
 
@@ -52,7 +52,7 @@ def listening_history_to_dict(listening_history_record: SongHistoryRecord) -> di
         'artist_name': listening_history_record.artist_name,
         'art_link': listening_history_record.art_link,
         'played_at': listening_history_record.played_at
-        }
+    }
 
 
 def save_listening_session(
@@ -83,7 +83,7 @@ def get_latest_listening_session(spotify_user_id: str) -> ListeningSession:
     @param spotify_user_id: The spotify user to get the listening session for
     @return: The ListeningSession object
     """
-    return ListeningSession.query.filter_by(spotify_user_id=spotify_user_id)\
+    return ListeningSession.query.filter_by(spotify_user_id=spotify_user_id) \
         .order_by(ListeningSession.end_time.desc()).first()
 
 
@@ -119,3 +119,20 @@ def get_activity_from_name(spotify_user_id: str, activity_name: str) -> Activity
         (Activity.spotify_user_id == spotify_user_id) &
         (Activity.activity_name == activity_name)
     ).first()
+
+
+def get_playlists(spotify_user_id: str) -> list[ActivityPlaylist]:
+    # idk if this method is necessary.
+    # maybe we get all activities and look at the Activity.activity_playlist attribute instead
+    return ActivityPlaylist.query.filter_by(spotify_user_id=spotify_user_id).all()
+
+
+def save_playlist(spotify_user_id: str, spotify_playlist_id, playlist_name, activity_id):
+    ap = ActivityPlaylist(
+        spotify_user_id=spotify_user_id,
+        spotify_playlist_id=spotify_playlist_id,
+        playlist_name=playlist_name,
+        activity_id=activity_id
+    )
+    db.session.add(ap)
+    db.session.commit()
