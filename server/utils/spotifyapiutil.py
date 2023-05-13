@@ -45,15 +45,23 @@ def get_authorization_header(spotify_user_id: str):
     return {'Authorization': f'Bearer {st.access_token}'}
 
 
-def make_authorized_get_request(spotify_user_id: str, url: str) -> dict:
+def make_authorized_request(spotify_user_id: str, url: str, request_type: str = 'GET', body: dict = None) -> dict:
     """
     Make a GET request to Spotify using valid credentials.
 
     @param spotify_user_id: user to make request for
     @param url: url to make the request to (including params)
-    @return: None
+    @param request_type: Type of request to make. Valid types are
+    @param body: Body of request. Only used if `request_type` supports a message body
+    @return: HTTP response as dict
     """
-    res = requests.get(url, headers=get_authorization_header(spotify_user_id))
+    if request_type == 'GET':
+        request_method = requests.get
+    elif request_type == 'POST':
+        request_method = requests.post
+    else:
+        raise ValueError('')
+    res = request_method(url, headers=get_authorization_header(spotify_user_id), data=body)
     if res.status_code == 401:
         # "401 Unauthorized" likely means expired token, so try to get a new one
         if not refresh_tokens(spotify_user_id):
@@ -61,7 +69,7 @@ def make_authorized_get_request(spotify_user_id: str, url: str) -> dict:
             app.logger.error(f'Couldn\'t refresh token for user: {spotify_user_id}')
             raise RuntimeError(f'Couldn\'t refresh token for user: {spotify_user_id}')
         # retry the request
-        res = requests.get(url, headers=get_authorization_header(spotify_user_id))
+        res = request_method(url, headers=get_authorization_header(spotify_user_id), data=body)
     elif res.status_code != 200:
         # some other error occurred
         app.logger.error(f'Error making request to: {url} for {spotify_user_id}')

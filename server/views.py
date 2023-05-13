@@ -13,11 +13,14 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 
 from server import app
 from . import endpoints, db
-from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict
+from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict, \
+    get_listening_sessions_for_activity, set_listening_session_activity_by_id, \
+    add_songs_from_listening_session_to_playlist
 from .database.historytracker import update_user_history
+from .database.playlistmanager import create_playlist
 from .models import SpotifyToken
 from .utils.backgroundtasks import start_scheduler
-from .utils.spotifyapiutil import make_authorized_get_request
+from .utils.spotifyapiutil import make_authorized_request
 
 jwt = JWTManager(app)
 
@@ -106,33 +109,63 @@ def refresh():
     pass
 
 
-@app.route('/sessions/')
+@app.route('/sessions/<activity_id>')
 @jwt_required()
-def sessions():
-    # TODO do this
-    return jsonify(sessions=["this is a session"])
+def sessions(activity_id):
+    # Gets all the sessions associated with activity_id
+    spotify_user_id = get_jwt_identity()
+    listening_sessions = get_listening_sessions_for_activity(spotify_user_id, int(activity_id))
+    return [{
+        'id': s.id,
+        'time': s.start_time
+    } for s in listening_sessions]
 
 
-@app.route('/session/<session_id>/', methods=['POST'])
+@app.route('/set_session_activity/<session_id>/', methods=['POST'])
 @jwt_required()
-def session(session_id):
-    # TODO do this
-    print(f'would have updated/modified session id {session_id}')
-    return jsonify(message='success')
+def set_session_activity(session_id):
+    # sets the activity a listening session is associated with
+    # also adds the songs from this listening session to the activity's playlist, if it is created
+    spotify_user_id = get_jwt_identity()
+    activity_id = int(request.args.get('activity_id'))
+    set_listening_session_activity_by_id(int(session_id), int(request.args.get('activity_id')))
+    add_songs_from_listening_session_to_playlist(spotify_user_id, int(session_id), activity_id)
+
 
 
 @app.route('/activities/')
 @jwt_required()
 def activities():
+    spotify_user_id = get_jwt_identity()
+    activities_list = [{
+        'id': activity.id,
+        'name': activity.activity_name
+    } for activity in get_user_activities(spotify_user_id)]
+
+    if len(activities_list) == 0:
+        activities_list = ["These are test activities", "this is an activity", "Here's another", "wow a third one"]
+    return {'activities': activities_list}
+
+
+@app.route('/activity/<activity_id>/playlist', methods=['POST'])
+@jwt_required()
+def playlist(activity_id):
+    # create a playlist for an activity
     # TODO do this
-    return jsonify(activities=["this is an activity", "Here's another", "wow a third one"])
+    spotify_user_id = get_jwt_identity()
+    create_playlist(spotify_user_id, activity_id)
 
 
-@app.route('/activity_playlists/')
+@app.route('/playlists/')
 @jwt_required()
 def activity_playlists():
-    # TODO do this
-    return jsonify(playlists=["this is an activity playlist"])
+    spotify_user_id = get_jwt_identity()
+    # We aren't storing the playlist name. Activity name will be used for display, and a None playlist id implies no
+    # playlist exists yet
+    return {'playlists': [{
+        'id': activity.activity_playlist.id,
+        'activity_name': activity.activity_name
+    } for activity in get_user_activities(spotify_user_id)]}
 
 
 @app.route('/homepage_info/')
@@ -190,4 +223,4 @@ def user():
     # res = requests.get(endpoints.ME_URL, headers=headers)
     # res_data = res.json()
 
-    return make_authorized_get_request(spotify_user_id, endpoints.ME_URL)
+    return make_authorized_request(spotify_user_id, endpoints.ME_URL)

@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from server import endpoints, db, app
 from server.models import SpotifyToken, SongHistoryRecord
 from server.utils.listeningsession import create_listening_sessions
-from server.utils.spotifyapiutil import make_authorized_get_request
+from server.utils.spotifyapiutil import make_authorized_request
 
 
 # TODO make a dict to keep track of when history was last updated for users, and don't update again if it's too soon
@@ -26,7 +26,7 @@ def get_user_recently_played(spotify_user_id: str) -> list[dict]:
 
     url = url + f'/?{urlencode(url_params)}'
 
-    res = make_authorized_get_request(spotify_user_id, url)
+    res = make_authorized_request(spotify_user_id, url)
     # return the array
     return res.get('items')
 
@@ -35,6 +35,7 @@ def save_user_recently_played(spotify_user_id: str) -> None:
     app.logger.info('Fetching listening history for ' + spotify_user_id)
     song_history = get_user_recently_played(spotify_user_id)
     for song in song_history:
+        # TODO check that `is_local` == False
         try:
             played_at_date = datetime.strptime(song['played_at'], '%Y-%m-%dT%H:%M:%S.%fZ')
         except ValueError:
@@ -44,7 +45,7 @@ def save_user_recently_played(spotify_user_id: str) -> None:
             song_id=song['track']['id'],
             song_name=song['track']['name'],
             artist_name=song['track']['artists'][0]['name'],
-            art_link=song['track']['album']['images'][0]['url'],
+            art_link=song['track']['album']['images'][0]['url'],  # TODO get the smallest sized image
             played_at=played_at_date
         ))
     db.session.commit()
