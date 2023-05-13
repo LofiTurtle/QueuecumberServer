@@ -43,5 +43,4 @@ class ActivityPlaylist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
     spotify_playlist_id = db.Column(db.String, nullable=False)
-    playlist_name = db.Column(db.String)
     activity_id = db.Column(db.Integer, db.ForeignKey('activity.id'), nullable=False, unique=True)
