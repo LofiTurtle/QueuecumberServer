@@ -121,6 +121,15 @@ def save_activity(spotify_user_id: str, activity_name: str) -> Activity:
     return a
 
 
+def create_default_activities(spotify_user_id: str) -> None:
+    """
+    Creates the default activities for a new user.
+    @param spotify_user_id: The new user's id
+    """
+    # TODO do this
+    pass
+
+
 def get_user_activities(spotify_user_id: str, limit: int = None) -> list[Activity]:
     if limit:
         result = Activity.query.filter(Activity.spotify_user_id == spotify_user_id).limit(limit).all()
