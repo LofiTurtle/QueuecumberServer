@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from server import db
-from server.database.playlistmanager import add_songs_to_playlist
 from server.models import SongHistoryRecord, Activity, ListeningSession, ActivityPlaylist
 
 
@@ -39,11 +38,12 @@ def get_user_listening_history_after_date(spotify_user_id: str, after: datetime)
     """
     Get the saved listening history for a user
     @param spotify_user_id: The user to get history for
-    @param after: Only records after this date will be fetched
+    @param after: Only records after this date will be returned
     @return: The list of SongHistoryRecord objects
     """
     result = SongHistoryRecord.query\
-        .filter(SongHistoryRecord.spotify_user_id == spotify_user_id and SongHistoryRecord.played_at > after) \
+        .filter(SongHistoryRecord.spotify_user_id == spotify_user_id)\
+        .filter(SongHistoryRecord.played_at > after) \
         .order_by(SongHistoryRecord.played_at.desc()).all()
     return result
 
@@ -119,14 +119,6 @@ def get_songs_for_listening_session(ls: ListeningSession) -> list[SongHistoryRec
         (SongHistoryRecord.played_at <= ls.end_time) &
         (SongHistoryRecord.spotify_user_id == ls.spotify_user_id)
     ).all()
-
-
-def add_songs_from_listening_session_to_playlist(spotify_user_id: str, listening_session_id: int,
-                                                 activity_id: int) -> None:
-    spotify_playlist_id = Activity.query.filter_by(id=activity_id).first().activity_playlist.spotify_playlist_id
-    listening_session = ListeningSession.query.filter_by(id=listening_session_id).first()
-    ls_songs = get_songs_for_listening_session(listening_session)
-    add_songs_to_playlist(spotify_user_id, spotify_playlist_id, [song.song_id for song in ls_songs])
 
 
 def save_activity(spotify_user_id: str, activity_name: str) -> Activity:
