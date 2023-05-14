@@ -54,13 +54,14 @@ def listening_history_to_dict(listening_history_record: SongHistoryRecord) -> di
     @param listening_history_record: The SongHistoryRecord database object
     @return: A dictionary containing a key for each attribute
     """
+    played_at_milliseconds = int((listening_history_record.played_at - datetime.utcfromtimestamp(0)).total_seconds() * 1000)
     return {
         'spotify_user_id': listening_history_record.spotify_user_id,
         'song_id': listening_history_record.song_id,
         'song_name': listening_history_record.song_name,
         'artist_name': listening_history_record.artist_name,
         'art_link': listening_history_record.art_link,
-        'played_at': listening_history_record.played_at
+        'played_at_millis': played_at_milliseconds
     }
 
 

@@ -12,7 +12,7 @@ class Activity(db.Model):
     # this might have issues with duplicate activity names if we don't handle id in the client.
     # maybe a unique constraint for the combination of user ID and activity name?
     id = db.Column(db.Integer, primary_key=True)
-    spotify_user_id = db.Column(db.String, unique=True, nullable=False)
+    spotify_user_id = db.Column(db.String, nullable=False)
     activity_name = db.Column(db.String, nullable=False)
     listening_sessions = db.relationship('ListeningSession', lazy=True)
     activity_playlist = db.relationship('ActivityPlaylist', uselist=False, lazy=True)

@@ -15,7 +15,7 @@ from server import app
 from . import endpoints, db
 from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict, \
     get_listening_sessions_for_activity, set_listening_session_activity_by_id, \
-    add_songs_from_listening_session_to_playlist, save_activity
+    add_songs_from_listening_session_to_playlist, save_activity, get_songs_for_listening_session
 from .database.historytracker import update_user_history
 from .database.playlistmanager import create_playlist
 from .models import SpotifyToken
@@ -130,6 +130,15 @@ def set_session_activity(session_id):
     activity_id = int(request.args.get('activity_id'))
     set_listening_session_activity_by_id(int(session_id), int(request.args.get('activity_id')))
     add_songs_from_listening_session_to_playlist(spotify_user_id, int(session_id), activity_id)
+    return {'result': 'success'}
+
+
+@app.route('/session_songs/<session_id>')
+@jwt_required()
+def get_listening_session_songs(session_id):
+    spotify_user_id = get_jwt_identity()
+    songs = get_songs_for_listening_session(session_id)
+    return [{'songs': listening_history_to_dict(song)} for song in songs]
 
 
 @app.route('/activity/', methods=['POST'])
@@ -139,6 +148,7 @@ def activity():
     spotify_user_id = get_jwt_identity()
     activity_name = request.args.get('activity_name')
     save_activity(spotify_user_id, activity_name)
+    return {'result': 'success'}
 
 
 @app.route('/activities/')
@@ -164,6 +174,7 @@ def create_playlist(activity_id):
     # create a playlist for an activity
     spotify_user_id = get_jwt_identity()
     create_playlist(spotify_user_id, activity_id)
+    return {'result': 'success'}
 
 
 @app.route('/playlists/')

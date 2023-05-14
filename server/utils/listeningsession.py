@@ -6,7 +6,10 @@ from server.database.datamanager import get_user_listening_history, save_listeni
 
 def create_listening_sessions(spotify_user_id: str) -> None:
     latest_listening_session = get_latest_listening_session(spotify_user_id)
-    history = get_user_listening_history_after_date(spotify_user_id, latest_listening_session.end_time)
+    if latest_listening_session is None:
+        history = get_user_listening_history(spotify_user_id)
+    else:
+        history = get_user_listening_history_after_date(spotify_user_id, latest_listening_session.end_time)
     start_time = -1
     previous_played_at = history[0].played_at
     current_played_at = history[0].played_at
