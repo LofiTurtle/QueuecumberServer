@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 from server import endpoints, app, db
@@ -59,9 +61,11 @@ def make_authorized_request(spotify_user_id: str, url: str, request_type: str = 
         request_method = requests.get
     elif request_type == 'POST':
         request_method = requests.post
+    elif request_type == 'PUT':
+        request_method = requests.put
     else:
         raise ValueError('')
-    res = request_method(url, headers=get_authorization_header(spotify_user_id), data=body)
+    res = request_method(url, headers=get_authorization_header(spotify_user_id), json=body)
     if res.status_code == 401:
         # "401 Unauthorized" likely means expired token, so try to get a new one
         if not refresh_tokens(spotify_user_id):
@@ -69,9 +73,16 @@ def make_authorized_request(spotify_user_id: str, url: str, request_type: str = 
             app.logger.error(f'Couldn\'t refresh token for user: {spotify_user_id}')
             raise RuntimeError(f'Couldn\'t refresh token for user: {spotify_user_id}')
         # retry the request
-        res = request_method(url, headers=get_authorization_header(spotify_user_id), data=body)
-    elif res.status_code != 200:
+        res = request_method(url, headers=get_authorization_header(spotify_user_id), json=body)
+    elif res.status_code >= 400:
         # some other error occurred
-        app.logger.error(f'Error making request to: {url} for {spotify_user_id}')
+        app.logger.error(f'Error making {request_type} request to: {url} for {spotify_user_id}')
+        app.logger.error(f'Status code {res.status_code}')
+        app.logger.error(f'headers: {res.headers}')
+        app.logger.error(f'Response: {json.dumps(res.json(), indent=2)}')
         raise RuntimeError(f'Error making request to: {url} for {spotify_user_id}')
-    return res.json()
+    try:
+        res_data = res.json()
+    except requests.exceptions.JSONDecodeError:
+        res_data = None
+    return res_data

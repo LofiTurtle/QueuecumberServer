@@ -54,7 +54,7 @@ def listening_history_to_dict(listening_history_record: SongHistoryRecord) -> di
     @param listening_history_record: The SongHistoryRecord database object
     @return: A dictionary containing a key for each attribute
     """
-    played_at_milliseconds = int((listening_history_record.played_at - datetime.utcfromtimestamp(0)).total_seconds() * 1000)
+    played_at_milliseconds = datetime_to_epoch(listening_history_record.played_at)
     return {
         'spotify_user_id': listening_history_record.spotify_user_id,
         'song_id': listening_history_record.song_id,
@@ -145,13 +145,6 @@ def get_user_activities(spotify_user_id: str, limit: int = None) -> list[Activit
     return result
 
 
-def get_activity_from_name(spotify_user_id: str, activity_name: str) -> Activity:
-    return Activity.query.filter(
-        (Activity.spotify_user_id == spotify_user_id) &
-        (Activity.activity_name == activity_name)
-    ).first()
-
-
 def get_playlists(spotify_user_id: str) -> list[ActivityPlaylist]:
     """
     Get all playlists for a user
@@ -161,3 +154,12 @@ def get_playlists(spotify_user_id: str) -> list[ActivityPlaylist]:
     # idk if this method is necessary.
     # maybe we get all activities and look at the Activity.activity_playlist attribute instead
     return ActivityPlaylist.query.filter_by(spotify_user_id=spotify_user_id).all()
+
+
+def datetime_to_epoch(date_time: datetime):
+    """
+    Converts a datetime object to milliseconds since the epoch
+    @param date_time:
+    @return:
+    """
+    return int((date_time - datetime.utcfromtimestamp(0)).total_seconds() * 1000)
