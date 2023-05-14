@@ -15,7 +15,7 @@ from server import app
 from . import endpoints, db
 from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict, \
     get_listening_sessions_for_activity, set_listening_session_activity_by_id, \
-    add_songs_from_listening_session_to_playlist
+    add_songs_from_listening_session_to_playlist, save_activity
 from .database.historytracker import update_user_history
 from .database.playlistmanager import create_playlist
 from .models import SpotifyToken
@@ -132,6 +132,14 @@ def set_session_activity(session_id):
     add_songs_from_listening_session_to_playlist(spotify_user_id, int(session_id), activity_id)
 
 
+@app.route('/activity/', methods=['POST'])
+@jwt_required()
+def activity():
+    # creates a new activity. name is the 'activity_name' query parameter
+    spotify_user_id = get_jwt_identity()
+    activity_name = request.args.get('activity_name')
+    save_activity(spotify_user_id, activity_name)
+
 
 @app.route('/activities/')
 @jwt_required()
@@ -147,25 +155,26 @@ def activities():
     return {'activities': activities_list}
 
 
-@app.route('/activity/<activity_id>/playlist', methods=['POST'])
+@app.route('/create_playlist/<activity_id>/', methods=['POST'])
 @jwt_required()
-def playlist(activity_id):
+def create_playlist(activity_id):
     # create a playlist for an activity
-    # TODO do this
     spotify_user_id = get_jwt_identity()
     create_playlist(spotify_user_id, activity_id)
 
 
 @app.route('/playlists/')
 @jwt_required()
-def activity_playlists():
+def playlists():
     spotify_user_id = get_jwt_identity()
     # We aren't storing the playlist name. Activity name will be used for display, and a None playlist id implies no
     # playlist exists yet
-    return {'playlists': [{
-        'id': activity.activity_playlist.id,
-        'activity_name': activity.activity_name
-    } for activity in get_user_activities(spotify_user_id)]}
+    playlist_list = [{
+        'id': user_activity.activity_playlist.id if user_activity.activity_playlist is not None else None,
+        'activity_name': user_activity.activity_name,
+        'activity_id': user_activity.id
+    } for user_activity in get_user_activities(spotify_user_id)]
+    return {'playlists': playlist_list}
 
 
 @app.route('/homepage_info/')
