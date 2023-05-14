@@ -42,7 +42,7 @@ def refresh_tokens(spotify_user_id: str) -> bool:
 
 def get_authorization_header(spotify_user_id: str):
     st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
-    return {'Authorization': f'Bearer {st.access_token}'}
+    return {'Authorization': f'Bearer {st.access_token if st.access_token is not None else None}'}
 
 
 def make_authorized_request(spotify_user_id: str, url: str, request_type: str = 'GET', body: dict = None) -> dict:

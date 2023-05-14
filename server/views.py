@@ -151,7 +151,10 @@ def activities():
     } for activity in get_user_activities(spotify_user_id)]
 
     if len(activities_list) == 0:
-        activities_list = ["These are test activities", "this is an activity", "Here's another", "wow a third one"]
+        activities_list = [{
+            'id': -1,
+            'name': 'Test Activity'
+        }]
     return {'activities': activities_list}
 
 
