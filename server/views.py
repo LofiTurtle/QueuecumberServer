@@ -15,9 +15,9 @@ from server import app
 from . import endpoints, db
 from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict, \
     get_listening_sessions_for_activity, set_listening_session_activity_by_id, \
-    add_songs_from_listening_session_to_playlist, save_activity, get_songs_for_listening_session
+    save_activity, get_songs_for_listening_session
 from .database.historytracker import update_user_history
-from .database.playlistmanager import create_playlist
+from .database.playlistmanager import create_playlist, add_songs_from_listening_session_to_playlist
 from .models import SpotifyToken
 from .utils.backgroundtasks import start_scheduler
 from .utils.spotifyapiutil import make_authorized_request
