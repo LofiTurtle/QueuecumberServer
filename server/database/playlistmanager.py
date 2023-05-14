@@ -48,7 +48,7 @@ def add_songs_to_playlist(spotify_user_id: str, activity_id: int, songs: list[st
 
     playlist_modify_url = endpoints.PLAYLIST_MODIFY_URL.format(playlist_id=spotify_playlist_id)
     payload = {'description': get_playlist_description()}
-    make_authorized_request(spotify_user_id, playlist_modify_url, 'POST', payload)
+    make_authorized_request(spotify_user_id, playlist_modify_url, 'PUT', payload)
 
 
 def add_songs_from_listening_session_to_playlist(spotify_user_id: str, listening_session_id: int,
@@ -61,7 +61,8 @@ def add_songs_from_listening_session_to_playlist(spotify_user_id: str, listening
 
 def get_playlist_description() -> str:
     d = datetime.now()
-    return f'Playlist created by the Queuecumber app. Last updated on {d.month}/{d.day}/{d.year} at {d.hour}:{d.minute:02} {d:%p}'
+    d_hour = d.hour - 12 if d.hour > 12 else d.hour
+    return f'Playlist created by the Queuecumber app. Last updated on {d.month}/{d.day}/{d.year} at {d_hour}:{d.minute:02} {d:%p}'
 
 
 def save_playlist(spotify_user_id: str, spotify_playlist_id, activity_id):

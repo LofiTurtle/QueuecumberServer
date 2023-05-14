@@ -15,7 +15,7 @@ from server import app
 from . import endpoints, db
 from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict, \
     get_listening_sessions_for_activity, set_listening_session_activity_by_id, \
-    save_activity, get_songs_for_listening_session
+    save_activity, get_songs_for_listening_session, datetime_to_epoch
 from .database.historytracker import update_user_history
 from .database.playlistmanager import create_playlist, add_songs_from_listening_session_to_playlist
 from .models import SpotifyToken
@@ -109,16 +109,17 @@ def refresh():
     pass
 
 
-@app.route('/sessions/<activity_id>')
+@app.route('/sessions/<activity_id>/')
 @jwt_required()
 def sessions(activity_id):
     # Gets all the sessions associated with activity_id
     spotify_user_id = get_jwt_identity()
     listening_sessions = get_listening_sessions_for_activity(spotify_user_id, int(activity_id))
-    return [{
+    return {'sessions': [{
         'id': s.id,
-        'time': s.start_time
-    } for s in listening_sessions]
+        'start_time_millis': datetime_to_epoch(s.start_time),
+        'end_time_millis': datetime_to_epoch(s.end_time)
+    } for s in listening_sessions]}
 
 
 @app.route('/set_session_activity/<session_id>/', methods=['POST'])
