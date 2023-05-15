@@ -171,7 +171,7 @@ def activities():
 
 @app.route('/create_playlist/<activity_id>/', methods=['POST'])
 @jwt_required()
-def create_playlist(activity_id):
+def create_playlist_endpoint(activity_id):
     # create a playlist for an activity
     spotify_user_id = get_jwt_identity()
     create_playlist(spotify_user_id, activity_id)
@@ -182,10 +182,11 @@ def create_playlist(activity_id):
 @jwt_required()
 def playlists():
     spotify_user_id = get_jwt_identity()
-    # We aren't storing the playlist name. Activity name will be used for display, and a None playlist id implies no
+    # We aren't storing the playlist name. Activity name will be used for display, and an empty playlist id implies no
     # playlist exists yet
     playlist_list = [{
-        'id': user_activity.activity_playlist.id if user_activity.activity_playlist is not None else None,
+        'playlist_id': user_activity.activity_playlist.id if user_activity.activity_playlist is not None else -1,
+        'playlist_url': user_activity.activity_playlist.playlist_url if user_activity.activity_playlist is not None else "",
         'activity_name': user_activity.activity_name,
         'activity_id': user_activity.id
     } for user_activity in get_user_activities(spotify_user_id)]

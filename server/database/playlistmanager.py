@@ -6,7 +6,7 @@ from server.models import Activity, ActivityPlaylist, ListeningSession
 from server.utils.spotifyapiutil import make_authorized_request
 
 
-def create_playlist(spotify_user_id: str, activity_id: int):
+def create_playlist(spotify_user_id: str, activity_id: int) -> ActivityPlaylist:
     """
     Create playlist in a user's spotify account, save it to the db, and add songs from all existing listening sessions.
     :param spotify_user_id: User to make a playlist for
@@ -15,21 +15,25 @@ def create_playlist(spotify_user_id: str, activity_id: int):
     playlist_activity: Activity = Activity.query.filter_by(id=activity_id).first()
     if playlist_activity.activity_playlist is not None:
         # a playlist already exists for this activity, don't create another
-        return
+        return playlist_activity.activity_playlist
     url = endpoints.PLAYLIST_CREATE_URL.format(user_id=spotify_user_id)
     payload = {'name': f'{playlist_activity.activity_name} Music', 'description': get_playlist_description()}
     playlist_details = make_authorized_request(spotify_user_id, url, 'POST', payload)
     playlist_id = playlist_details['id']
+    playlist_url = playlist_details['external_urls']['spotify']
 
-    save_playlist(
+    playlist = save_playlist(
         spotify_user_id=spotify_user_id,
         spotify_playlist_id=playlist_id,
+        playlist_url=playlist_url,
         activity_id=playlist_activity.id,
     )
 
     for ls in playlist_activity.listening_sessions:
         ls_songs = get_songs_for_listening_session(ls)
         add_songs_to_playlist(spotify_user_id, activity_id, [song.song_id for song in ls_songs])
+
+    return playlist
 
 
 def add_songs_to_playlist(spotify_user_id: str, activity_id: int, songs: list[str]) -> None:
@@ -65,11 +69,13 @@ def get_playlist_description() -> str:
     return f'Playlist created by the Queuecumber app. Last updated on {d.month}/{d.day}/{d.year} at {d_hour}:{d.minute:02} {d:%p}'
 
 
-def save_playlist(spotify_user_id: str, spotify_playlist_id, activity_id):
+def save_playlist(spotify_user_id: str, spotify_playlist_id: str, playlist_url: str, activity_id: int) -> ActivityPlaylist:
     ap = ActivityPlaylist(
         spotify_user_id=spotify_user_id,
         spotify_playlist_id=spotify_playlist_id,
+        playlist_url=playlist_url,
         activity_id=activity_id
     )
     db.session.add(ap)
     db.session.commit()
+    return ap
