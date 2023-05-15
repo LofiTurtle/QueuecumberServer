@@ -12,12 +12,12 @@ def create_playlist(spotify_user_id: str, activity_id: int) -> ActivityPlaylist:
     :param spotify_user_id: User to make a playlist for
     :param activity_id: The id of the Activity to associate this playlist with
     """
-    playlist_activity: Activity = Activity.query.filter_by(id=activity_id).first()
-    if playlist_activity.activity_playlist is not None:
+    activity: Activity = Activity.query.filter_by(id=activity_id).first()
+    if activity.activity_playlist is not None:
         # a playlist already exists for this activity, don't create another
-        return playlist_activity.activity_playlist
+        return activity.activity_playlist
     url = endpoints.PLAYLIST_CREATE_URL.format(user_id=spotify_user_id)
-    payload = {'name': f'{playlist_activity.activity_name} Music', 'description': get_playlist_description()}
+    payload = {'name': f'{activity.activity_name} Music', 'description': get_playlist_description()}
     playlist_details = make_authorized_request(spotify_user_id, url, 'POST', payload)
     playlist_id = playlist_details['id']
     playlist_url = playlist_details['external_urls']['spotify']
@@ -26,24 +26,24 @@ def create_playlist(spotify_user_id: str, activity_id: int) -> ActivityPlaylist:
         spotify_user_id=spotify_user_id,
         spotify_playlist_id=playlist_id,
         playlist_url=playlist_url,
-        activity_id=playlist_activity.id,
+        activity_id=activity.id,
     )
 
-    for ls in playlist_activity.listening_sessions:
+    for ls in activity.listening_sessions:
         ls_songs = get_songs_for_listening_session(ls)
         add_songs_to_playlist(spotify_user_id, activity_id, [song.song_id for song in ls_songs])
 
     return playlist
 
 
-def add_songs_to_playlist(spotify_user_id: str, activity_id: int, songs: list[str]) -> None:
+def add_songs_to_playlist(spotify_user_id: str, spotify_playlist_id: int, songs: list[str]) -> None:
     """
     Adds a list of songs to a playlist
     @param spotify_user_id: The owner of the playlist
-    @param activity_id: id of the Activity whose playlist should be modified
+    @param spotify_playlist_id: id of the Activity whose playlist should be modified
     @param songs: ids of songs to add
     """
-    spotify_playlist_id = Activity.query.filter_by(id=activity_id).first().activity_playlist.spotify_playlist_id
+    # spotify_playlist_id = Activity.query.filter_by(id=activity_id).first().activity_playlist.spotify_playlist_id
     add_tracks_url = endpoints.PLAYLIST_ADD_TRACKS_URL.format(playlist_id=spotify_playlist_id)
     song_uris = [f'spotify:track:{song}' for song in songs]
     for i in range(0, len(song_uris), 100):
@@ -57,7 +57,10 @@ def add_songs_to_playlist(spotify_user_id: str, activity_id: int, songs: list[st
 
 def add_songs_from_listening_session_to_playlist(spotify_user_id: str, listening_session_id: int,
                                                  activity_id: int) -> None:
-    spotify_playlist_id = Activity.query.filter_by(id=activity_id).first().activity_playlist.spotify_playlist_id
+    activity_playlist = Activity.query.filter_by(id=activity_id).first().activity_playlist
+    if not activity_playlist:
+        return
+    spotify_playlist_id = activity_playlist.spotify_playlist_id
     listening_session = ListeningSession.query.filter_by(id=listening_session_id).first()
     ls_songs = get_songs_for_listening_session(listening_session)
     add_songs_to_playlist(spotify_user_id, spotify_playlist_id, [song.song_id for song in ls_songs])

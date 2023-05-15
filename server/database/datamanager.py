@@ -89,7 +89,7 @@ def set_listening_session_activity(listening_session: ListeningSession, activity
 
 def set_listening_session_activity_by_id(listening_session_id: int, activity_id: int):
     ls = ListeningSession.query.filter_by(id=listening_session_id).first()
-    a = Activity.query.filter_by(id=activity_id)
+    a = Activity.query.filter_by(id=activity_id).first()
     set_listening_session_activity(ls, a)
 
 

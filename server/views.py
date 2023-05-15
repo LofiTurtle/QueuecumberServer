@@ -140,12 +140,14 @@ def sessions(activity_id):
     } for s in listening_sessions]}
 
 
-@app.route('/set_session_activity/<session_id>/', methods=['POST'])
+@app.route('/set_session_activity/', methods=['POST'])
 @jwt_required()
-def set_session_activity(session_id):
+def set_session_activity():
     # sets the activity a listening session is associated with
     # also adds the songs from this listening session to the activity's playlist, if it is created
+    # TODO add docstring. params: ?session_id=id&activity_id=id
     spotify_user_id = get_jwt_identity()
+    session_id = int(request.args.get('session_id'))
     activity_id = int(request.args.get('activity_id'))
     set_listening_session_activity_by_id(int(session_id), int(request.args.get('activity_id')))
     add_songs_from_listening_session_to_playlist(spotify_user_id, int(session_id), activity_id)
