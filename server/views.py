@@ -15,10 +15,10 @@ from server import app
 from . import endpoints, db
 from .database.datamanager import get_user_listening_history, get_user_activities, listening_history_to_dict, \
     get_listening_sessions_for_activity, set_listening_session_activity_by_id, \
-    save_activity, get_songs_for_listening_session, datetime_to_epoch
+    create_activity, get_songs_for_listening_session, datetime_to_epoch, create_default_activities, delete_activity
 from .database.historytracker import update_user_history
 from .database.playlistmanager import create_playlist, add_songs_from_listening_session_to_playlist
-from .models import SpotifyToken
+from .models import SpotifyToken, ListeningSession, Activity
 from .utils.backgroundtasks import start_scheduler
 from .utils.spotifyapiutil import make_authorized_request
 
@@ -85,15 +85,19 @@ def callback():
 
     existing_st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
     if existing_st:
+        # the user has logged in before, so update token
         existing_st.access_token = spotify_access_token
         existing_st.refresh_token = spotify_refresh_token
     else:
+        # first time user. Create new token and create their default activities
         st = SpotifyToken(
             spotify_user_id=spotify_user_id,
             access_token=spotify_access_token,
             refresh_token=spotify_refresh_token
         )
         db.session.add(st)
+        create_default_activities(spotify_user_id)
+
     db.session.commit()
 
     client_access_token = create_access_token(identity=spotify_user_id)
@@ -109,12 +113,26 @@ def refresh():
     pass
 
 
+@app.route('/sessions/')
+@jwt_required()
+def unlabeled_sessions():
+    # Gets all the sessions associated with activity_id
+    spotify_user_id = get_jwt_identity()
+    listening_sessions = get_listening_sessions_for_activity(spotify_user_id, None)
+    return {'sessions': [{
+        'id': s.id,
+        'start_time_millis': datetime_to_epoch(s.start_time),
+        'end_time_millis': datetime_to_epoch(s.end_time)
+    } for s in listening_sessions]}
+
+
 @app.route('/sessions/<activity_id>/')
 @jwt_required()
 def sessions(activity_id):
     # Gets all the sessions associated with activity_id
     spotify_user_id = get_jwt_identity()
-    listening_sessions = get_listening_sessions_for_activity(spotify_user_id, int(activity_id))
+    activity_id = int(activity_id)
+    listening_sessions = get_listening_sessions_for_activity(spotify_user_id, activity_id)
     return {'sessions': [{
         'id': s.id,
         'start_time_millis': datetime_to_epoch(s.start_time),
@@ -138,17 +156,37 @@ def set_session_activity(session_id):
 @jwt_required()
 def get_listening_session_songs(session_id):
     spotify_user_id = get_jwt_identity()
+    if spotify_user_id != ListeningSession.query.filter_by(id=session_id).first().spotify_user_id:
+        # if the user is trying to access another user's session, abort the request
+        abort(401)
     songs = get_songs_for_listening_session(session_id)
     return [{'songs': listening_history_to_dict(song)} for song in songs]
 
 
-@app.route('/activity/', methods=['POST'])
+@app.route('/activity/create/', methods=['POST'])
 @jwt_required()
-def activity():
-    # creates a new activity. name is the 'activity_name' query parameter
+def create_activity_endpoint():
+    """
+    Create a new activity. Activity name is the 'activity_name' query parameter.
+    """
     spotify_user_id = get_jwt_identity()
     activity_name = request.args.get('activity_name')
-    save_activity(spotify_user_id, activity_name)
+    create_activity(spotify_user_id, activity_name)
+    return {'result': 'success'}
+
+
+@app.route('/activity/delete/', methods=['POST'])
+@jwt_required()
+def delete_activity_endpoint():
+    """
+    Delete an activity. The id of the Activity to delete is in the 'activity_id' query parameter
+    """
+    spotify_user_id = get_jwt_identity()
+    activity_id = int(request.args.get('activity_id'))
+    if spotify_user_id != Activity.query.filter_by(id=activity_id).first().spotify_user_id:
+        # if the user is trying to delete another user's activity, abort the request
+        abort(401)
+    delete_activity(activity_id)
     return {'result': 'success'}
 
 

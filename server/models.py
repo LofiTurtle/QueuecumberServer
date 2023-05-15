@@ -13,7 +13,7 @@ class Activity(db.Model):
     # maybe a unique constraint for the combination of user ID and activity name?
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
-    activity_name = db.Column(db.String, nullable=False)
+    activity_name = db.Column(db.String, nullable=False, unique=True)
     listening_sessions = db.relationship('ListeningSession', lazy=True)
     activity_playlist = db.relationship('ActivityPlaylist', uselist=False, lazy=True)
 

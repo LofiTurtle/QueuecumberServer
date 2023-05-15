@@ -107,7 +107,7 @@ def get_listening_sessions_for_activity(spotify_user_id: str, activity_id: int =
     """
     Returns listening sessions for activity, or unlabeled listening sessions if activity_id=None
     @param spotify_user_id: The spotify user to get listening sessions for
-    @param activity_id: id of activity
+    @param activity_id: id of activity, or None
     @return: list of ListeningSession objects
     """
     return ListeningSession.query.filter(ListeningSession.activity_id == activity_id).all()
@@ -121,11 +121,17 @@ def get_songs_for_listening_session(ls: ListeningSession) -> list[SongHistoryRec
     ).all()
 
 
-def save_activity(spotify_user_id: str, activity_name: str) -> Activity:
+def create_activity(spotify_user_id: str, activity_name: str) -> Activity:
     a = Activity(spotify_user_id=spotify_user_id, activity_name=activity_name)
     db.session.add(a)
     db.session.commit()
     return a
+
+
+def delete_activity(activity_id: int):
+    a = Activity.query.filter_by(id=activity_id).first()
+    db.session.delete(a)
+    db.session.commit()
 
 
 def create_default_activities(spotify_user_id: str) -> None:
@@ -133,8 +139,9 @@ def create_default_activities(spotify_user_id: str) -> None:
     Creates the default activities for a new user.
     @param spotify_user_id: The new user's id
     """
-    # TODO do this
-    pass
+    default_activities = ['Driving', 'Studying', 'Working Out']
+    for activity_name in default_activities:
+        create_activity(spotify_user_id, activity_name)
 
 
 def get_user_activities(spotify_user_id: str, limit: int = None) -> list[Activity]:
@@ -143,17 +150,6 @@ def get_user_activities(spotify_user_id: str, limit: int = None) -> list[Activit
     else:
         result = Activity.query.filter(Activity.spotify_user_id == spotify_user_id).all()
     return result
-
-
-def get_playlists(spotify_user_id: str) -> list[ActivityPlaylist]:
-    """
-    Get all playlists for a user
-    @param spotify_user_id: User to get playlists for
-    @return: list of ActivityPlaylist objects
-    """
-    # idk if this method is necessary.
-    # maybe we get all activities and look at the Activity.activity_playlist attribute instead
-    return ActivityPlaylist.query.filter_by(spotify_user_id=spotify_user_id).all()
 
 
 def datetime_to_epoch(date_time: datetime):
