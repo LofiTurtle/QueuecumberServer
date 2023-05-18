@@ -11,6 +11,10 @@ def create_listening_sessions(spotify_user_id: str) -> None:
     else:
         history = get_user_listening_history_after_date(spotify_user_id, latest_listening_session.end_time)
     history.reverse()
+
+    if len(history) == 0:
+        return
+
     min_songs = 3
     start_time: datetime = history[0].played_at
     start_index = 0
