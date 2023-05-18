@@ -31,7 +31,7 @@ def create_playlist(spotify_user_id: str, activity_id: int) -> ActivityPlaylist:
 
     for ls in activity.listening_sessions:
         ls_songs = get_songs_for_listening_session(ls)
-        add_songs_to_playlist(spotify_user_id, activity_id, [song.song_id for song in ls_songs])
+        add_songs_to_playlist(spotify_user_id, playlist_id, [song.song_id for song in ls_songs])
 
     return playlist
 
