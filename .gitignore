@@ -1,5 +1,4 @@
 /QueuecumberServer.egg-info/
 /.env
-/.flaskenv
 /.idea
 /instance/project.db
