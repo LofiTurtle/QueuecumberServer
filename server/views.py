@@ -154,15 +154,18 @@ def set_session_activity():
     return {'result': 'success'}
 
 
-@app.route('/session_songs/<session_id>')
+@app.route('/session_songs/')
 @jwt_required()
-def get_listening_session_songs(session_id):
+def get_listening_session_songs():
+    # returns the songs in a session, takes ?session_id=id query param
+    session_id = request.args.get('session_id')
     spotify_user_id = get_jwt_identity()
     if spotify_user_id != ListeningSession.query.filter_by(id=session_id).first().spotify_user_id:
         # if the user is trying to access another user's session, abort the request
         abort(401)
-    songs = get_songs_for_listening_session(session_id)
-    return [{'songs': listening_history_to_dict(song)} for song in songs]
+    listening_session = ListeningSession.query.filter_by(id=session_id).first()
+    songs = get_songs_for_listening_session(listening_session)
+    return {'songs': [listening_history_to_dict(song) for song in songs]}
 
 
 @app.route('/activity/create/', methods=['POST'])
