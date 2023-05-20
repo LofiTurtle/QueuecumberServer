@@ -246,14 +246,17 @@ def homepage_info():
         'name': activity.activity_name
     } for activity in user_activities]
 
-    # TODO do this for real when playlists are working
-    user_playlists_dicts = ['playlist 1', 'playlist B', 'playlist III']
+    # add activity.name for each activity that has a corresponding playlist
+    all_user_activities = get_user_activities(spotify_user_id)
+    user_playlists_dicts = [activity.activity_name for activity in all_user_activities if activity.activity_playlist is not None]
+    # limit to the first 3 elements
+    user_playlists_dicts = user_playlists_dicts[:3]
 
     update_user_history(spotify_user_id)
     user_listening_history = get_user_listening_history(spotify_user_id, limit=3)
     user_listening_history_dicts = [listening_history_to_dict(lh) for lh in user_listening_history]
 
-    # info is first 3 activities, 3 playlists (TBD), and last 3 songs listened to
+    # info is first 3 activities, 3 playlists, and last 3 songs listened to
     info = {
         'activities': user_activities_dicts,
         'playlists': user_playlists_dicts,
