@@ -5,6 +5,10 @@ from server.database.datamanager import get_user_listening_history, save_listeni
 
 
 def create_listening_sessions(spotify_user_id: str) -> None:
+    """
+    Goes through the user's listening history, creating new unlabeled listening sessions
+    @param spotify_user_id: The id of the user to create listening sessions for
+    """
     latest_listening_session = get_latest_listening_session(spotify_user_id)
     if latest_listening_session is None:
         history = get_user_listening_history(spotify_user_id)

@@ -2,6 +2,9 @@ from server import db
 
 
 class SpotifyToken(db.Model):
+    """
+    Database table to store the spotify access and refresh tokens for users
+    """
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, unique=True, nullable=False)
     access_token = db.Column(db.String, nullable=False)
@@ -9,8 +12,9 @@ class SpotifyToken(db.Model):
 
 
 class Activity(db.Model):
-    # this might have issues with duplicate activity names if we don't handle id in the client.
-    # maybe a unique constraint for the combination of user ID and activity name?
+    """
+    Table to store activities for users
+    """
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
     activity_name = db.Column(db.String, nullable=False, unique=True)
@@ -19,7 +23,9 @@ class Activity(db.Model):
 
 
 class ListeningSession(db.Model):
-    # each row is a single listening session for a user
+    """
+    Table to store listening sessions for users
+    """
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
     start_time = db.Column(db.DateTime)
@@ -28,7 +34,9 @@ class ListeningSession(db.Model):
 
 
 class SongHistoryRecord(db.Model):
-    # each row is a single song in the user's listening history
+    """
+    Table to store the songs users listen to
+    """
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
     song_id = db.Column(db.String, nullable=False)
@@ -39,7 +47,9 @@ class SongHistoryRecord(db.Model):
 
 
 class ActivityPlaylist(db.Model):
-    # each row represents a playlist in the user's spotify account
+    """
+    Table to store the information about playlists associated with activities
+    """
     id = db.Column(db.Integer, primary_key=True)
     spotify_user_id = db.Column(db.String, nullable=False)
     spotify_playlist_id = db.Column(db.String, nullable=False)

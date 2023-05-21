@@ -49,15 +49,13 @@ def login():
     return res
 
 
-@app.route('/logout/')
-def logout():
-    # TODO implement this (invalidate JWT)
-    abort(404)
-
-
 @app.route('/callback/', methods=['POST'])
 def callback():
-    # headers to get an access token with the authorization code
+    """
+    This endpoint is the callback for the Spotify web API OAuth flow. It handles retrieving the authorization code from
+    the url, using the code to get the Spotify access and refresh tokens, and creating tokens for the client.
+    """
+    # Headers for the request to get Spotify tokens
     auth_headers = {
         'grant_type': 'authorization_code',
         'code': request.args.get('code'),
@@ -76,6 +74,7 @@ def callback():
         )
         abort(res.status_code)
 
+    # saving the access tokens, along with their spotify user id
     spotify_access_token = res_data.get('access_token')
     spotify_refresh_token = res_data.get('refresh_token')
     headers = {'Authorization': f'Bearer {spotify_access_token}'}
@@ -85,7 +84,7 @@ def callback():
 
     existing_st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
     if existing_st:
-        # the user has logged in before, so update token
+        # Old tokens already exist, so the user has logged in before. Update token
         existing_st.access_token = spotify_access_token
         existing_st.refresh_token = spotify_refresh_token
     else:
@@ -100,23 +99,19 @@ def callback():
 
     db.session.commit()
 
+    # Create and return access and refresh tokens for the client to use to authenticate future requests
     client_access_token = create_access_token(identity=spotify_user_id)
     client_refresh_token = create_refresh_token(identity=spotify_user_id)
 
     return jsonify(clientAccessToken=client_access_token, clientRefreshToken=client_refresh_token)
 
 
-@app.route('/refresh/', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh():
-    # TODO do this
-    pass
-
-
 @app.route('/sessions/')
 @jwt_required()
 def unlabeled_sessions():
-    # Gets all the sessions associated with activity_id
+    """
+    Returns all the listening sessions not yet labeled with an activity
+    """
     spotify_user_id = get_jwt_identity()
     listening_sessions = get_listening_sessions_for_activity(spotify_user_id, None)
     return {'sessions': [{
@@ -129,7 +124,10 @@ def unlabeled_sessions():
 @app.route('/sessions/<activity_id>/')
 @jwt_required()
 def sessions(activity_id):
-    # Gets all the sessions associated with activity_id
+    """
+    Returns all the listening sessions associated with this activity.
+    The activity is specified by 'activity_id'
+    """
     spotify_user_id = get_jwt_identity()
     activity_id = int(activity_id)
     listening_sessions = get_listening_sessions_for_activity(spotify_user_id, activity_id)
@@ -143,9 +141,11 @@ def sessions(activity_id):
 @app.route('/set_session_activity/', methods=['POST'])
 @jwt_required()
 def set_session_activity():
-    # sets the activity a listening session is associated with
-    # also adds the songs from this listening session to the activity's playlist, if it is created
-    # TODO add docstring. params: ?session_id=id&activity_id=id
+    """
+    Labels a listening session with an activity, specified by the following url query parameters:
+    'session_id': id of the session to modify
+    'activity_id': id of the activity to label this session with
+    """
     spotify_user_id = get_jwt_identity()
     session_id = int(request.args.get('session_id'))
     activity_id = int(request.args.get('activity_id'))
@@ -157,6 +157,9 @@ def set_session_activity():
 @app.route('/session_songs/')
 @jwt_required()
 def get_listening_session_songs():
+    """
+    Return the list of all songs from the session, specified by the 'session_id' url query parameter
+    """
     # returns the songs in a session, takes ?session_id=id query param
     session_id = request.args.get('session_id')
     spotify_user_id = get_jwt_identity()
@@ -198,6 +201,9 @@ def delete_activity_endpoint():
 @app.route('/activities/')
 @jwt_required()
 def activities():
+    """
+    Returns a list of all activities
+    """
     spotify_user_id = get_jwt_identity()
     activities_list = [{
         'id': activity.id,
@@ -215,6 +221,10 @@ def activities():
 @app.route('/create_playlist/<activity_id>/', methods=['POST'])
 @jwt_required()
 def create_playlist_endpoint(activity_id):
+    """
+    Creates a playlist for the associated activity_id
+    @param activity_id: The id of the activity to make a playlist for
+    """
     # create a playlist for an activity
     spotify_user_id = get_jwt_identity()
     create_playlist(spotify_user_id, activity_id)
@@ -224,6 +234,9 @@ def create_playlist_endpoint(activity_id):
 @app.route('/playlists/')
 @jwt_required()
 def playlists():
+    """
+    Returns the playlist information associated with each activity
+    """
     spotify_user_id = get_jwt_identity()
     # We aren't storing the playlist name. Activity name will be used for display, and an empty playlist id implies no
     # playlist exists yet
@@ -239,6 +252,9 @@ def playlists():
 @app.route('/homepage_info/')
 @jwt_required()
 def homepage_info():
+    """
+    Returns the information shown in the previews on the homepage
+    """
     spotify_user_id = get_jwt_identity()
 
     user_activities = get_user_activities(spotify_user_id, limit=3)
@@ -269,7 +285,9 @@ def homepage_info():
 @app.route('/history/')
 @jwt_required()
 def history():
-    # TODO add limit and index params
+    """
+    Return the list of all songs for this user
+    """
     spotify_user_id = get_jwt_identity()
     update_user_history(spotify_user_id)
     listening_history = get_user_listening_history(spotify_user_id)
@@ -282,16 +300,15 @@ def history():
 @app.route('/user/')
 @jwt_required()
 def user():
-    # starts the scheduler. It's weird to put it here, but flask is weird so getting it to run on its own won't work
+    """
+    Returns info about the current user's Spotify profile
+    """
+    # start the scheduler to handle collecting listening history in the background
     try:
         start_scheduler()
     except SchedulerAlreadyRunningError:
         pass
 
     spotify_user_id = get_jwt_identity()
-    # st = SpotifyToken.query.filter_by(spotify_user_id=spotify_user_id).first()
-    # headers = {'Authorization': f'Bearer {st.access_token}'}
-    # res = requests.get(endpoints.ME_URL, headers=headers)
-    # res_data = res.json()
 
     return make_authorized_request(spotify_user_id, endpoints.ME_URL)

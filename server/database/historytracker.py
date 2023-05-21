@@ -7,9 +7,6 @@ from server.utils.listeningsession import create_listening_sessions
 from server.utils.spotifyapiutil import make_authorized_request
 
 
-# TODO make a dict to keep track of when history was last updated for users, and don't update again if it's too soon
-
-
 def get_user_recently_played(spotify_user_id: str) -> list[dict]:
     url = endpoints.HISTORY_URL
     # get the played_at time for the most recent history record
@@ -53,7 +50,6 @@ def save_user_recently_played(spotify_user_id: str) -> None:
 
 def update_user_history(spotify_user_id: str):
     save_user_recently_played(spotify_user_id)
-    # TODO test this
     create_listening_sessions(spotify_user_id)
 
 
